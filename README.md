@@ -1,7 +1,6 @@
 # Secrets-Blog-Website
 The Anonymous Blogging Platform is a web application that allows users to share  their thoughts, stories, or opinions on a public forum while keeping their identity hidden.
 
-
 # Project Title
 
 ## 🛠️ Steps to Run the Project Locally
@@ -41,17 +40,15 @@ SESSION_SECRET=your_secret_key
 ### 5️⃣ Start the Server
 Run the following command to start the backend server:
 
-bash
-Run
-Copy code
+```bash
 npm start
+```
 or
-
-bash
-Run
-Copy code
+```bash
 node server.js
-6️⃣ Open the Application
+```
+### 6️⃣ Open the Application
 Once the server is running, open your browser and go to:
-🔗 http://localhost:5000
+
+🔗 http://localhost:3000
 
