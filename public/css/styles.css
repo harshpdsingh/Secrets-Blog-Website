@@ -1,0 +1,31 @@
+
+body {
+  background-color: #E8ECEF;
+}
+
+.centered {
+    padding-top: 200px;
+    text-align: center;
+}
+
+.secret-text {
+  text-align: center;
+  font-size: 2rem;
+  color: #fff;
+}
+
+.btnn {
+  background-color: black; /* Button color */
+  color: white; /* Text color */
+  border: none; /* Remove default border */
+  border-radius: 25px; /* Rounded corners */
+  padding: 10px 20px; /* Padding for size */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: box-shadow 0.3s ease, transform 0.3s ease; /* Smooth transition for hover effect */
+  font-size: 16px; /* Optional: Set font size */
+}
+
+.btnn:hover {
+  box-shadow: 0 0 20px rgb(36, 34, 34); 
+  transform: scale(1.05); /* Optional: Slightly enlarge on hover */
+}
