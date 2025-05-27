@@ -13,6 +13,7 @@ const mongoose = require("mongoose");
 const app = express();
 
 // Database connection
+mongoose.set('strictQuery', false);
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -23,7 +24,15 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true, sparse: true },
   password: String,
   google_id: String,
-  secrets: [String]
+  secrets: [{
+    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+    text: String,
+    replies: [{
+      _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+      text: String,
+      authorId: String
+    }]
+  }]
 });
 
 const User = mongoose.model("User", userSchema);
@@ -96,6 +105,23 @@ passport.use(new GoogleStrategy({
   }
 }));
 
+// Place this after your User model definition, before any routes
+//For migrating old secrets format to new object format
+// This migration script will run once to convert old string secrets to the new object format
+(async () => {
+  const users = await User.find({ "secrets.0": { $type: "string" } });
+  for (const user of users) {
+    user.secrets = user.secrets.map(secret =>
+      typeof secret === "string"
+        ? { text: secret, replies: [] }
+        : secret
+    );
+    await user.save();
+  }
+  if (users.length > 0) {
+    console.log("Migrated old secrets to new object format.");
+  }
+})();
 
 // Routes
 app.get("/", (req, res) => res.render("home"));
@@ -131,7 +157,7 @@ app.get("/submit", (req, res) => {
 app.post("/submit", async (req, res) => {
   try {
     const secret = req.body.secret;
-    await User.findByIdAndUpdate(req.user.id, { $push: { secrets: secret } });
+    await User.findByIdAndUpdate(req.user.id, { $push: { secrets: { text: secret, replies: [] } } });
     res.redirect("/secrets");
   } catch (err) {
     console.error(err);
@@ -183,12 +209,68 @@ app.post("/delete", async (req, res) => {
   }
 
   try {
-    const secretToDelete = req.body.secret;
-    await User.findByIdAndUpdate(req.user.id, { $pull: { secrets: secretToDelete } });
+    const secretToDelete = req.body.secretId || req.body.secret; // support both field names
+    await User.findByIdAndUpdate(req.user.id, { $pull: { secrets: { _id: secretToDelete } } });
     res.redirect("/secrets");
   } catch (err) {
     console.error(err);
     res.redirect("/");
+  }
+});
+
+// Add a reply to a secret
+app.post("/reply", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  try {
+    const { secretId, replyText } = req.body;
+    // Find the user who owns the secret
+    const user = await User.findOne({ "secrets._id": secretId });
+    if (!user) return res.redirect("/secrets");
+
+    // Find the secret and push the reply
+    const secret = user.secrets.id(secretId);
+    if (!secret) return res.redirect("/secrets");
+
+    secret.replies = secret.replies || [];
+    secret.replies.push({
+      text: replyText,
+      authorId: req.user.id
+    });
+
+    await user.save();
+    res.redirect("/secrets");
+  } catch (err) {
+    console.error(err);
+    res.redirect("/secrets");
+  }
+});
+
+// Delete a reply from a secret
+app.post("/delete-reply", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/login");
+  }
+  try {
+    const { secretId, replyId } = req.body;
+    // Find the user who owns the secret
+    const user = await User.findOne({ "secrets._id": secretId });
+    if (!user) return res.redirect("/secrets");
+
+    const secret = user.secrets.id(secretId);
+    if (!secret) return res.redirect("/secrets");
+
+    // Only allow the author to delete their reply
+    const reply = secret.replies.id(replyId);
+    if (reply && reply.authorId === req.user.id) {
+      reply.remove();
+      await user.save();
+    }
+    res.redirect("/secrets");
+  } catch (err) {
+    console.error(err);
+    res.redirect("/secrets");
   }
 });
 
