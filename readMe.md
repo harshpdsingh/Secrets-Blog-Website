@@ -54,3 +54,6 @@ node app.js
 Once the server is running, open your browser and go to:
 
 🔗 http://localhost:3000
+
+[![License: Unlicense](https://img.shields.io/badge/license-Unlicense-blue.svg)](./UNLICENSE)
+
